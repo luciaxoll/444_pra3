@@ -102,16 +102,22 @@ def test_search_with_query_ok(client):
     rv = client.get("/search/?query=Hello")
     assert rv.status_code == 200
 
-def test_login_required(client):
-    from flask import jsonify
-    from project.app import app, login_required
+def test_login_required_minimal():
+    from flask import Flask, jsonify
+    from project.app import login_required
 
+    app = Flask(__name__)
+    app.secret_key = "test"
     app.add_url_rule("/_t", "_t", login_required(lambda: jsonify(ok=True)))
 
-    r = client.get("/_t")
+    c = app.test_client()
+
+    r = c.get("/_t")
     assert r.status_code == 401
 
-    with client.session_transaction() as s:
+    with c.session_transaction() as s:
         s["logged_in"] = True
-    r = client.get("/_t")
+
+    r = c.get("/_t")
     assert (r.status_code, r.get_json()) == (200, {"ok": True})
+
