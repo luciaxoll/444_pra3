@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 
 from project.app import app, db
+from project.models import Post
+
+
 TEST_DB = "test.db"
 
 @pytest.fixture
@@ -79,3 +82,18 @@ def test_delete_message(client):
     rv = client.get('/delete/1')
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+
+# added for search
+def test_search_no_query_ok(client):
+    rv = client.get("/search/")
+    assert rv.status_code == 200
+
+def test_search_with_query_ok(client):
+    # seed one post so the template has something to show
+    with app.app_context():
+        db.session.add(Post("Hello World", "Body"))
+        db.session.commit()
+
+    rv = client.get("/search/?query=Hello")
+    assert rv.status_code == 200
