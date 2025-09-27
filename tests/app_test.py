@@ -79,7 +79,11 @@ def test_messages(client):
 
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
-    rv = client.get('/delete/1')
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
 
@@ -97,3 +101,17 @@ def test_search_with_query_ok(client):
 
     rv = client.get("/search/?query=Hello")
     assert rv.status_code == 200
+
+def test_login_required(client):
+    from flask import jsonify
+    from project.app import app, login_required
+
+    app.add_url_rule("/_t", "_t", login_required(lambda: jsonify(ok=True)))
+
+    r = client.get("/_t")
+    assert r.status_code == 401
+
+    with client.session_transaction() as s:
+        s["logged_in"] = True
+    r = client.get("/_t")
+    assert (r.status_code, r.get_json()) == (200, {"ok": True})
